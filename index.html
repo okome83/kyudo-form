@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<title>弓道フォーム確認・比較 Webアプリ</title>
+<style>
+:root{--ac:#00e676;--cy:#22d3ee;--bd:#333}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:#121212;color:#fff;font:15px/1.4 Roboto,"Noto Sans JP",sans-serif;display:flex;flex-direction:column;height:100dvh;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.hidden{display:none!important}
+header{background:#1e1e1e;padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd)}
+h1{font-size:17px;color:var(--ac)}
+nav{display:flex;gap:4px;background:#000;padding:4px;border-radius:10px}
+nav button{border:0;background:none;color:#9ca3af;font-weight:700;font-size:14px;min-height:44px;padding:0 12px;border-radius:8px}
+nav button.on{background:var(--ac);color:#000}
+main{flex:1;min-height:0;position:relative;background:#000;overflow:hidden}
+#single,#cmp{position:absolute;inset:0}
+#single>video,#single>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.vh{opacity:0;pointer-events:none}
+.mir{transform:scaleX(-1)}
+#cmp video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#cmp.side{display:flex}
+#cmp.side video{position:relative;inset:auto;flex:1 1 50%;width:50%;min-width:0;opacity:1!important}
+#cmp.side #va{border-right:1px solid var(--bd)}
+#grid{position:absolute;inset:0;z-index:50;pointer-events:none;display:none}
+#grid.on{display:block}
+#grid svg{width:100%;height:100%}
+#ov{position:absolute;inset:0;z-index:40;background:rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:22px;font-weight:700;color:var(--ac)}
+#rec{position:absolute;top:12px;left:12px;z-index:45;background:#dc2626;border:1px solid #f87171;padding:6px 12px;border-radius:999px;font-weight:700;font-size:14px;animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.35}}
+footer{background:#1e1e1e;border-top:1px solid var(--bd);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;max-height:48dvh;overflow:auto}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.box{display:flex;flex-direction:column;gap:8px}
+.btn{min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #555;background:#2a2a2a;color:#fff;font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center}
+.btn.on{border-color:var(--ac);color:var(--ac)}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#000}
+.btn.rec{background:#dc2626;border-color:#dc2626}
+.btn.big{flex:1;min-height:56px;font-size:16px}
+.btn.sm{min-height:44px;padding:0 10px;font-size:14px}
+.btn:disabled{opacity:.4;pointer-events:none}
+input[type=range]{flex:1;min-width:110px;height:36px;accent-color:var(--ac)}
+#ob{accent-color:var(--cy)}
+.clip{background:#121212;border:1px solid var(--bd);border-radius:10px;padding:4px 6px;display:flex;flex-direction:row;align-items:center;gap:6px}
+.clip>b{width:18px;text-align:center}
+.clip input[type=range]{min-width:60px}
+.btn.ic{min-height:44px;min-width:44px;padding:0;font-size:18px}
+#badge{font-size:13px;color:var(--ac);background:#2a2a2a;border:1px solid #444;border-radius:8px;padding:6px 10px;margin-left:auto}
+@media (max-width:600px){h1{display:none}header{justify-content:center;padding:4px 8px}}
+@media (orientation:landscape) and (max-height:520px){
+body{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr)}
+header{grid-column:1/3;justify-content:center;padding:4px 8px}h1{display:none}
+main{grid-column:1;grid-row:2}footer{grid-column:2;grid-row:2;max-height:none;border-top:0;border-left:1px solid var(--bd)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 弓道フォーム確認・比較</h1>
+  <nav>
+    <button id="n-m1" class="on" onclick="setMode('m1')">1 遅延モニター</button>
+    <button id="n-m2" onclick="setMode('m2')">2 撮影</button>
+    <button id="n-m3" onclick="setMode('m3')">3 比較</button>
+  </nav>
+</header>
+
+<main>
+  <div id="grid"><svg viewBox="0 0 100 100" preserveAspectRatio="none">
+    <g stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke">
+      <line x1="33.33" y1="0" x2="33.33" y2="100" vector-effect="non-scaling-stroke"/><line x1="66.67" y1="0" x2="66.67" y2="100" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="33.33" x2="100" y2="33.33" vector-effect="non-scaling-stroke"/><line x1="0" y1="66.67" x2="100" y2="66.67" vector-effect="non-scaling-stroke"/>
+    </g>
+    <g stroke="rgba(0,230,118,.8)" stroke-width="2">
+      <line x1="50" y1="0" x2="50" y2="100" vector-effect="non-scaling-stroke"/><line x1="0" y1="50" x2="100" y2="50" vector-effect="non-scaling-stroke"/>
+    </g></svg></div>
+
+  <div id="single">
+    <video id="live" autoplay playsinline muted></video>
+    <canvas id="dc" class="hidden"></canvas>
+    <video id="pb" class="hidden" playsinline muted loop></video>
+    <div id="rec" class="hidden">● 録画中 (REC)</div>
+    <div id="ov" class="hidden"><span id="ovm"></span></div>
+  </div>
+
+  <div id="cmp" class="hidden">
+    <video id="va" playsinline muted></video>
+    <video id="vb" playsinline muted style="opacity:.5"></video>
+  </div>
+</main>
+
+<footer>
+  <div class="row">
+    <button class="btn" id="camBtn" onclick="toggleCam()">📷 カメラ切替</button>
+    <button class="btn" id="mirBtn" onclick="toggleMir()">↔️ 反転 OFF</button>
+    <button class="btn" id="gridBtn" onclick="toggleGrid()">📐 グリッド OFF</button>
+    <span id="badge">カメラ起動中</span>
+  </div>
+
+  <section id="s-m1" class="box">
+    <div class="row"><label>遅延</label>
+      <input type="range" id="dr" min="3" max="60" step="1" value="10" oninput="$('dl').textContent=this.value+' 秒'">
+      <b id="dl" style="color:var(--ac);min-width:48px;text-align:right">10 秒</b></div>
+    <button class="btn pri big" id="db" onclick="toggleDelay()">▶ 遅延再生開始</button>
+  </section>
+
+  <section id="s-m2" class="box hidden">
+    <div class="row"><label>タイマー</label>
+      <input type="range" id="tr" min="0" max="10" step="1" value="3" oninput="$('tl').textContent=this.value+' 秒'">
+      <b id="tl" style="color:var(--ac);min-width:48px;text-align:right">3 秒</b></div>
+    <div class="row">
+      <button class="btn rec big" id="rb" onclick="recClick()">🔴 撮影開始</button>
+      <button class="btn big hidden" id="rs" onclick="retake()">📷 カメラに戻る (再撮影)</button>
+      <button class="btn pri big" id="sv" onclick="save()" disabled>💾 動画を保存</button>
+    </div>
+  </section>
+
+  <section id="s-m3" class="box hidden">
+    <div class="row">
+      <button class="btn pri" style="flex:1" onclick="syncPlay()">▶/⏸ 同期再生</button>
+      <button class="btn" style="flex:1" id="vm" onclick="toggleView()">🔲 並列表示</button>
+      <button class="btn" id="pt" onclick="togglePanel()">▼ 隠す</button>
+    </div>
+    <div id="clips" class="box" style="gap:6px">
+      <div class="clip"><b style="color:var(--ac)">A</b>
+        <input type="range" id="sk-a" min="0" max="1" step="0.01" value="0" oninput="seekV('a',this.value)">
+        <button class="btn ic" onclick="step('a',-1)">◀</button><button class="btn ic" onclick="step('a',1)">▶</button>
+        <button class="btn ic" id="ma" onclick="mirV('a')">↔</button>
+        <label class="btn ic">📂<input type="file" accept="video/*" hidden onchange="loadV('a',event)"></label>
+      </div>
+      <div class="clip"><b style="color:var(--cy)">B</b>
+        <input type="range" id="sk-b" min="0" max="1" step="0.01" value="0" oninput="seekV('b',this.value)">
+        <button class="btn ic" onclick="step('b',-1)">◀</button><button class="btn ic" onclick="step('b',1)">▶</button>
+        <button class="btn ic" id="mb" onclick="mirV('b')">↔</button>
+        <label class="btn ic">📂<input type="file" accept="video/*" hidden onchange="loadV('b',event)"></label>
+      </div>
+      <div class="clip"><span style="font-size:13px;color:#9ca3af;white-space:nowrap">B 透明度</span>
+        <input type="range" id="ob" min="0" max="1" step="0.05" value="0.5" oninput="vb.style.opacity=this.value">
+      </div>
+    </div>
+  </section>
+</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const live=$('live'),dc=$('dc'),dctx=dc.getContext('2d'),pb=$('pb'),va=$('va'),vb=$('vb'),badge=$('badge');
+let mode='m1',stream=null,facing='environment',mirror=false,camSeq=0;
+const say=t=>{badge.textContent=t};
+const ovShow=t=>{$('ovm').textContent=t;$('ov').classList.remove('hidden')};
+const ovHide=()=>$('ov').classList.add('hidden');
+
+/* ---------- カメラ ---------- */
+function stopStream(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}live.srcObject=null}
+async function initCamera(){
+  const my=++camSeq; stopStream();
+  if(mode==='m3')return;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){say('カメラ使用不可: HTTPSで開く必要があります（file:// や http:// は不可）');return}
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(my!==camSeq){s.getTracks().forEach(t=>t.stop());return}
+    stream=s; live.srcObject=s; await live.play().catch(()=>{});
+    s.getVideoTracks()[0].onended=()=>say('カメラが停止しました（再読込で復帰）');
+    say('カメラ接続完了');
+  }catch(e){
+    const m={NotAllowedError:'カメラが許可されていません（アドレスバー左の鍵マーク→権限で許可）',NotFoundError:'カメラが見つかりません',
+      NotReadableError:'他のアプリがカメラを使用中です',OverconstrainedError:'カメラ設定が合いません',SecurityError:'HTTPSで開いてください'};
+    say('カメラエラー: '+(m[e.name]||e.name||'不明'));
+  }
+}
+function toggleCam(){facing=facing==='user'?'environment':'user';stopDelay();initCamera()}
+function toggleMir(){
+  mirror=!mirror;
+  [live,dc,pb].forEach(e=>e.classList.toggle('mir',mirror));
+  $('mirBtn').textContent='↔️ 反転 '+(mirror?'ON':'OFF');$('mirBtn').classList.toggle('on',mirror);
+}
+function toggleGrid(){
+  const on=$('grid').classList.toggle('on');
+  $('gridBtn').textContent='📐 グリッド '+(on?'ON':'OFF');$('gridBtn').classList.toggle('on',on);
+}
+/* Androidはバックグラウンドでカメラが止まるため、復帰時に再取得 */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')return;
+  if(delayOn)wakeOn();
+  if(mode!=='m3'){const t=stream&&stream.getVideoTracks()[0];if(!t||t.readyState!=='live')initCamera()}
+});
+
+/* ---------- モード切替 ---------- */
+function setMode(m){
+  cancelRec(); stopDelay(); resetLive(); mode=m;
+  ['m1','m2','m3'].forEach(k=>{$('n-'+k).classList.toggle('on',k===m);$('s-'+k).classList.toggle('hidden',k!==m)});
+  const c=m==='m3';
+  $('single').classList.toggle('hidden',c);$('cmp').classList.toggle('hidden',!c);
+  $('camBtn').classList.toggle('hidden',c);$('mirBtn').classList.toggle('hidden',c);
+  if(c){camSeq++;stopStream();say('比較モード（カメラ停止中）')}else if(!stream)initCamera();else say('カメラ準備完了');
+}
+
+/* ---------- モード1: 遅延モニター（JPEG+時刻のバッファ） ---------- */
+const FPS=20,CAP_W=854,QUALITY=.65;
+let delayOn=false,buf=[],capT=0,rafId=0,capBusy=false,drawBusy=false,lastDrawn=null,wake=null,wasBuf=true;
+const cc=document.createElement('canvas'),cctx=cc.getContext('2d');
+const delaySec=()=>+$('dr').value;
+async function wakeOn(){try{if(navigator.wakeLock)wake=await navigator.wakeLock.request('screen')}catch(e){}}
+function wakeOff(){try{wake&&wake.release()}catch(e){}wake=null}
+function setDelayUI(on){const b=$('db');b.textContent=on?'⏹ 遅延再生停止':'▶ 遅延再生開始';b.classList.toggle('pri',!on);b.classList.toggle('rec',on)}
+function toggleDelay(){delayOn?(stopDelay(),say('カメラ準備完了')):startDelay()}
+function startDelay(){
+  if(!stream||!live.videoWidth){say('カメラ準備中です');return}
+  delayOn=true;buf=[];lastDrawn=null;wasBuf=true;
+  dc.classList.remove('hidden');live.classList.add('vh');
+  setDelayUI(true);wakeOn();capture();rafId=requestAnimationFrame(play);
+}
+function stopDelay(){
+  delayOn=false;clearTimeout(capT);cancelAnimationFrame(rafId);buf=[];lastDrawn=null;wakeOff();
+  dc.classList.add('hidden');live.classList.remove('vh');if(!cdT&&!(mr&&mr.state==='recording'))ovHide();setDelayUI(false);
+}
+function capture(){
+  if(!delayOn)return;
+  capT=setTimeout(capture,1000/FPS);
+  if(capBusy||live.readyState<2||!live.videoWidth)return;
+  capBusy=true;
+  const w=Math.min(CAP_W,live.videoWidth),h=Math.round(w*live.videoHeight/live.videoWidth);
+  if(cc.width!==w||cc.height!==h){cc.width=w;cc.height=h}
+  cctx.drawImage(live,0,0,w,h);
+  const t=performance.now();
+  cc.toBlob(b=>{capBusy=false;if(b&&delayOn)buf.push({t,b})},'image/jpeg',QUALITY);
+}
+function play(){
+  if(!delayOn)return;
+  rafId=requestAnimationFrame(play);
+  const now=performance.now(),d=delaySec()*1000,target=now-d;
+  if(!buf.length||buf[0].t>target){
+    const first=buf.length?buf[0].t:now;
+    ovShow('遅延バッファ蓄積中… あと'+Math.max(1,Math.ceil((first+d-now)/1000))+'秒');wasBuf=true;return;
+  }
+  if(wasBuf){ovHide();wasBuf=false;say('遅延再生中 ('+delaySec()+'秒前)')}
+  let i=0;while(i+1<buf.length&&buf[i+1].t<=target)i++;
+  if(i>0)buf.splice(0,i);
+  const f=buf[0];
+  if(drawBusy||f===lastDrawn)return;
+  lastDrawn=f;drawBusy=true;
+  createImageBitmap(f.b).then(bm=>{
+    if(delayOn){if(dc.width!==bm.width||dc.height!==bm.height){dc.width=bm.width;dc.height=bm.height}dctx.drawImage(bm,0,0)}
+    bm.close();
+  }).catch(()=>{}).finally(()=>{drawBusy=false});
+}
+
+/* ---------- モード2: 撮影 ---------- */
+let mr=null,chunks=[],blob=null,blobUrl=null,cdT=null,maxT=null,discard=false;
+const MAX_REC_SEC=120;
+const pickType=()=>['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||'';
+function setRecUI(s){
+  const b=$('rb');b.disabled=s==='prev';
+  b.textContent={idle:'🔴 撮影開始',count:'✖ キャンセル',rec:'⏹ 録画停止',prev:'🔴 撮影開始'}[s];
+  $('rs').classList.toggle('hidden',s!=='prev');$('sv').disabled=s!=='prev';
+  $('camBtn').disabled=(s==='count'||s==='rec');
+}
+function recClick(){
+  if(mr&&mr.state==='recording')return stopRec();
+  if(cdT){cancelRec();setRecUI('idle');say('キャンセルしました');return}
+  if(!stream){say('カメラ未接続です');return}
+  let c=+$('tr').value;setRecUI('count');
+  if(c<=0)return doRec();
+  ovShow('撮影開始まで '+c+' 秒');say('撮影開始まで '+c+' 秒');
+  cdT=setInterval(()=>{c--;
+    if(c>0){ovShow('撮影開始まで '+c+' 秒');say('撮影開始まで '+c+' 秒')}
+    else{clearInterval(cdT);cdT=null;ovHide();doRec()}},1000);
+}
+function doRec(){
+  chunks=[];discard=false;const type=pickType();
+  try{mr=new MediaRecorder(stream,type?{mimeType:type,videoBitsPerSecond:4e6}:{videoBitsPerSecond:4e6})}
+  catch(e){say('このブラウザは録画に未対応です');setRecUI('idle');return}
+  const rec=mr;
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  rec.onstop=()=>{
+    clearTimeout(maxT);$('rec').classList.add('hidden');
+    if(discard||!chunks.length){chunks=[];setRecUI('idle');return}
+    blob=new Blob(chunks,{type:(rec.mimeType||type||'video/mp4').split(';')[0]});chunks=[];
+    revoke();blobUrl=URL.createObjectURL(blob);
+    live.classList.add('hidden');pb.classList.remove('hidden');pb.src=blobUrl;pb.play().catch(()=>{});
+    setRecUI('prev');say('プレビュー再生中（タップで一時停止）');
+  };
+  rec.start(1000);
+  $('rec').classList.remove('hidden');setRecUI('rec');say('🔴 録画中…');
+  maxT=setTimeout(stopRec,MAX_REC_SEC*1000);
+}
+function stopRec(){if(mr&&mr.state==='recording')mr.stop()}
+function cancelRec(){
+  clearInterval(cdT);cdT=null;clearTimeout(maxT);ovHide();
+  if(mr&&mr.state==='recording'){discard=true;mr.stop()}
+  $('rec').classList.add('hidden');
+}
+function revoke(){if(blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null}}
+function resetLive(){
+  pb.pause();pb.removeAttribute('src');pb.load();pb.classList.add('hidden');
+  live.classList.remove('hidden');revoke();blob=null;setRecUI('idle');
+}
+function retake(){resetLive();say('カメラ準備完了')}
+pb.onclick=()=>{pb.paused?pb.play():pb.pause()};
+function save(){
+  if(!blob)return;
+  const d=new Date(),p=n=>String(n).padStart(2,'0'),ext=blob.type.includes('mp4')?'mp4':'webm';
+  const a=document.createElement('a');a.href=blobUrl;
+  a.download=`kyudo_form_${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}-${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}.${ext}`;
+  document.body.appendChild(a);a.click();a.remove();say('保存しました (.'+ext+')');
+}
+
+/* ---------- モード3: 比較 ---------- */
+const V=t=>t==='a'?va:vb;
+function loadV(t,ev){
+  const f=ev.target.files[0];if(!f)return;
+  const v=V(t);if(v.dataset.u)URL.revokeObjectURL(v.dataset.u);
+  v.dataset.u=URL.createObjectURL(f);v.src=v.dataset.u;
+  v.onloadedmetadata=()=>fixDur(v,()=>{const s=$('sk-'+t);s.max=v.duration;s.value=0});
+  v.ontimeupdate=()=>{$('sk-'+t).value=v.currentTime};
+  say('動画'+t.toUpperCase()+'を読み込みました');ev.target.value='';
+}
+/* MediaRecorder製WebMのduration=Infinity対策 */
+function fixDur(v,cb){
+  if(v.duration===Infinity){v.onseeked=()=>{v.onseeked=null;v.currentTime=0;cb()};v.currentTime=1e101}else cb();
+}
+function seekV(t,x){V(t).currentTime=+x}
+function step(t,dir){const v=V(t);if(!v.src)return;v.pause();v.currentTime=Math.max(0,Math.min(v.duration||0,v.currentTime+dir/30))}
+function mirV(t){const v=V(t),on=v.classList.toggle('mir');$(t==='a'?'ma':'mb').classList.toggle('on',on)}
+function toggleView(){const s=$('cmp').classList.toggle('side');$('vm').textContent=s?'🔲 重ね表示':'🔲 並列表示'}
+function togglePanel(){const h=$('clips').classList.toggle('hidden');$('pt').textContent=h?'▲ 操作':'▼ 隠す'}
+async function syncPlay(){
+  const vs=[va,vb].filter(v=>v.src);
+  if(!vs.length){say('動画を読み込んでください');return}
+  if(vs.some(v=>!v.paused)){vs.forEach(v=>v.pause());say('一時停止')}
+  else{await Promise.all(vs.map(v=>v.play().catch(()=>{})));say('同期再生中')}
+}
+
+window.onload=()=>setMode('m1');
+</script>
+</body>
+</html>
