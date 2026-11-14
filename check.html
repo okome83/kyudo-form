@@ -65,7 +65,16 @@ input[type=range]{flex:1;min-width:90px;height:36px;accent-color:var(--ac)}
 @media (orientation:landscape) and (max-height:520px){
 body{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:auto minmax(0,1fr)}
 header{grid-column:1/3;justify-content:center;padding:4px 8px}h1{display:none}
-main{grid-column:1;grid-row:2}footer{grid-column:2;grid-row:2;max-height:none;border-top:0;border-left:1px solid var(--bd)}}
+main{grid-column:1;grid-row:2}footer{grid-column:2;grid-row:2;max-height:none;border-top:0;border-left:1px solid var(--bd)}
+body.focus{grid-template-columns:minmax(0,1fr)}}
+
+/* 映像最大化: ヘッダーとフッターを隠し、必要最小限のボタンだけ映像上に浮かせる */
+body.focus header,body.focus footer{display:none}
+#fab{position:fixed;right:calc(8px + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));z-index:70;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:calc(100% - 16px)}
+#fab .btn{background:rgba(30,30,30,.7);border-color:rgba(255,255,255,.35)}
+#fab .btn.on{border-color:var(--ac)}
+#fab .btn.pri{background:var(--ac);border-color:var(--ac)}
+#fab .btn.rec{background:#dc2626;border-color:#dc2626}
 </style>
 </head>
 <body>
@@ -190,7 +199,7 @@ main{grid-column:1;grid-row:2}footer{grid-column:2;grid-row:2;max-height:none;bo
   <!-- モード3: 比較 -->
   <section id="s-m3" class="box hidden">
     <div class="row">
-      <button class="btn pri" style="flex:1" onclick="syncPlay()">▶/⏸ 同期再生</button>
+      <button class="btn pri" id="sp" style="flex:1" onclick="syncPlay()">▶/⏸ 同期再生</button>
       <button class="btn" style="flex:1" id="vm" onclick="toggleView()">🔲 並列表示</button>
       <button class="btn" id="pt" onclick="togglePanel()">▼ 隠す</button>
     </div>
@@ -242,6 +251,7 @@ main{grid-column:1;grid-row:2}footer{grid-column:2;grid-row:2;max-height:none;bo
     </div>
   </section>
 </footer>
+<div id="fab" class="hidden"></div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -340,17 +350,34 @@ function setMode(m){
   if(c){camSeq++;stopStream();say('比較モード（カメラ停止中）')}else if(!stream)initCamera();else say('カメラ準備完了');
 }
 
-/* ---------- パネル開閉トグル用関数 ---------- */
-function togglePanelMode(m){
-  const content=$(`content-${m}`);
-  const btn=$(`pt-${m}`);
-  const h=content.classList.toggle('hidden');
-  btn.textContent=h?'▲ 操作':'▼ 隠す';
+/* ---------- 映像最大化（操作パネルを隠す） ---------- */
+const FAB_MAP=['db','rb','cap','rs','sv','sp','vm'];
+function syncFab(){
+  FAB_MAP.forEach(id=>{
+    const o=$(id),f=$('f-'+id);
+    f.textContent=o.textContent;
+    f.className='btn sm'+['pri','rec','on'].filter(c=>o.classList.contains(c)).map(c=>' '+c).join('');
+    f.classList.toggle('hidden',o.disabled||o.classList.contains('hidden')||o.closest('section').classList.contains('hidden'));
+  });
 }
-function togglePanel(){
-  const h=$('clips').classList.toggle('hidden');
-  $('pt').textContent=h?'▲ 操作':'▼ 隠す';
+function setFocus(on){
+  document.body.classList.toggle('focus',on);
+  $('fab').classList.toggle('hidden',!on);
+  if(on)syncFab();
+  /* 可能な環境ではブラウザのバーも消して全画面にする */
+  try{
+    const el=document.documentElement,rf=el.requestFullscreen||el.webkitRequestFullscreen;
+    const fs=document.fullscreenElement||document.webkitFullscreenElement;
+    if(on&&rf&&!fs){const r=rf.call(el);if(r&&r.catch)r.catch(()=>{})}
+    else if(!on&&fs){const x=document.exitFullscreen||document.webkitExitFullscreen;const r=x.call(document);if(r&&r.catch)r.catch(()=>{})}
+  }catch(e){}
 }
+function togglePanelMode(){setFocus(true)}
+function togglePanel(){setFocus(true)}
+FAB_MAP.forEach(id=>{const b=document.createElement('button');b.id='f-'+id;b.onclick=()=>$(id).click();$('fab').appendChild(b)});
+{const b=document.createElement('button');b.className='btn sm';b.textContent='▲ 操作';b.onclick=()=>setFocus(false);$('fab').appendChild(b)}
+new MutationObserver(syncFab).observe(document.querySelector('footer'),{subtree:true,childList:true,attributes:true,characterData:true});
+syncFab();
 
 /* ---------- モード1: 遅延モニター ---------- */
 const FPS=20,CAP_W=854,QUALITY=.65;
